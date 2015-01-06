@@ -21,15 +21,23 @@
 (defn entry
   [data]
   (om/component
-   (do
-     ;;(.log js/console (pr-str [(:visible data) (:title data)]))
-     (if (:visible data)
-       (sab/html
-        [:div {:style {:background-color (:color data)}}
-         [:a {:href (:link data)}
-          (:title data)]
-         [:h4 (:description data)]
-         [:h4 (:contents data)]])))))
+   (if (:visible data)
+     (sab/html
+      [:div {:style {:background-color (:color data)}}
+       [:a {:href (:link data)}
+        (str (:title data) "____")]
+       [:input {:type "button"
+                :value (if (:expanded data)
+                         "Unexpand"
+                         "Expand")
+                :on-click #(om/update! data
+                                       :expanded
+                                       (not (:expanded data)))}]
+       (if (:expanded data)
+         [:div
+          [:h4 (:description data)]
+          [:h4 (:contents data)]])
+       [:p " "]]))))
 
 (defn matches-term [search-term string]
   (re-matches (re-pattern (str ".*"
