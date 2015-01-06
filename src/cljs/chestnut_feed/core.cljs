@@ -16,7 +16,7 @@
                                    "http://planet.emacsen.org/atom.xml"
                                    "http://feed43.com/vim-scripts.xml"]
                       :entries []
-                      :search-term ""
+                      :search-term "clojure"
                       :zebra-colors (interleave (repeat "#eeeedd")
                                                 (repeat "#eeddee")
                                                 (repeat "#ddeeee"))}))
@@ -90,17 +90,19 @@
     (render-state [_ state]
       (apply dom/div nil
              (sab/html
-              [:h3 "Please insert search term: "])
-             (dom/input #js {:type "text"
-                             :ref "search-term"
-                             :value (:search-term data)
-                             :onChange #(do (om/update! data
-                                                        :search-term
-                                                        (.. % -target -value))
-                                            (update-entries-visibility (:entries data)
-                                                                       [(:search-term data)]))})
-             (sab/html
-              [:h3 (str "results for search term: " (:search-term data))])
+              [:h3 "Please insert search term: "]
+              [:input {:type "text"
+                       :ref "search-term"
+                       :value (:search-term data)
+                       :onChange #(let [new-search-term (.. % -target -value)]
+                                    (om/update! data
+                                                :search-term
+                                                new-search-term)
+                                    (update-entries-visibility (:entries data)
+                                                               [new-search-term]))}]
+              [:h3 (str "results for search term "
+                        (:search-term data)
+                        ":")])
              (om/build-all entry (vec (map (fn [data-entry color]
                                              (assoc data-entry
                                                     :color color))
