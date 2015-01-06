@@ -16,11 +16,10 @@
                                    "http://planet.emacsen.org/atom.xml"
                                    "http://feed43.com/vim-scripts.xml"]
                       :entries []
-                      :search-terms [""]
+                      :search-term ""
                       :zebra-colors (interleave (repeat "#eeeedd")
                                                 (repeat "#eeddee")
-                                                (repeat "#ddeeee"))
-}))
+                                                (repeat "#ddeeee"))}))
 
 (defn entry
   [data]
@@ -52,7 +51,7 @@
   (reify
     om/IInitState
     (init-state [_]
-      {:new-entries (chan 1000 (extract-entries (:search-terms data)))})
+      {:new-entries (chan 1000 (extract-entries [(:search-term data)]))})
     om/IWillMount
     (will-mount [_]
       (let [new-entries (om/get-state owner :new-entries)]
@@ -69,6 +68,14 @@
     om/IRenderState
     (render-state [_ state]
       (apply dom/div nil
+             (dom/input #js {:type "text"
+                             :ref "search-term"
+                             :value (:search-term data)
+                             :onChange #(om/update! data
+                                                    :search-term
+                                                    (.. % -target -value))})
+             (sab/html
+              [:h3 (str "results for search term: " (:search-term data))])
              (om/build-all entry (map (fn [data-entry color]
                                         (assoc data-entry
                                                :color color))
