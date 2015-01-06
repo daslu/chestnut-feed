@@ -25,12 +25,14 @@
   [data]
   (om/component
    (do
-     (.log js/console (pr-str [(:visible data) (:title data)]))
+     ;;(.log js/console (pr-str [(:visible data) (:title data)]))
      (if (:visible data)
        (sab/html
         [:div {:style {:background-color (:color data)}}
          [:a {:href (:link data)}
-          (:title data)]])))))
+          (:title data)]
+         [:h4 (:description data)]
+         [:h4 (:contents data)]])))))
 
 (defn matches-term [search-term string]
   (re-matches (re-pattern (str ".*"
@@ -90,7 +92,10 @@
     (render-state [_ state]
       (apply dom/div nil
              (sab/html
-              [:h3 "Please insert search term: "]
+              [:input {:type "button"
+                       :value "Refresh"
+                       :on-click #(init-entries data owner)}]
+              [:h2 "Please insert search term: "]
               [:input {:type "text"
                        :ref "search-term"
                        :value (:search-term data)
@@ -100,9 +105,9 @@
                                                 new-search-term)
                                     (update-entries-visibility (:entries data)
                                                                [new-search-term]))}]
-              [:h3 (str "results for search term "
+              [:h2 (str "results for search term '"
                         (:search-term data)
-                        ":")])
+                        "':")])
              (om/build-all entry (vec (map (fn [data-entry color]
                                              (assoc data-entry
                                                     :color color))

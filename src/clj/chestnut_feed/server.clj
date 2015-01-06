@@ -20,6 +20,8 @@
 (deftemplate page
   (io/resource "index.html") [] [:body] (if is-dev? inject-devmode-html identity))
 
+(defn handle-url [])
+
 (defroutes routes
   (resources "/")
   (resources "/react" {:root "react"})
@@ -29,7 +31,9 @@
              :url
              fp/parse-feed
              :entries
-             (map #(select-keys % [:title :link]))
+             (map #(into (select-keys % [:title :link])
+                         {:description (-> % :description :value)
+                          :contents (-> % :contents first :value)}))
              pr-str))
   (GET "/*" req (page)))
 
