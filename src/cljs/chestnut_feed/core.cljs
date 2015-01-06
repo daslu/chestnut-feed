@@ -16,10 +16,7 @@
                                    "http://planet.emacsen.org/atom.xml"
                                    "http://feed43.com/vim-scripts.xml"]
                       :entries []
-                      :search-term "clojure"
-                      :zebra-colors (interleave (repeat "#eeeedd")
-                                                (repeat "#eeddee")
-                                                (repeat "#ddeeee"))}))
+                      :search-term "clojure"}))
 
 (defn entry
   [data]
@@ -108,11 +105,7 @@
               [:h2 (str "results for search term '"
                         (:search-term data)
                         "':")])
-             (om/build-all entry (vec (map (fn [data-entry color]
-                                             (assoc data-entry
-                                                    :color color))
-                                           (:entries data)
-                                           (:zebra-colors data))))))))
+             (om/build-all entry (:entries data))))))
 
 (defn main []
   (om/root
