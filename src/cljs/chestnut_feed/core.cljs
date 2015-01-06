@@ -24,10 +24,13 @@
 (defn entry
   [data]
   (om/component
-   (sab/html
-    [:div {:style {:background-color (:color data)}}
-     [:a {:href (:link data)}
-      (:title data)]])))
+   (do
+     (.log js/console (pr-str [(:visible data) (:title data)]))
+     (if (:visible data)
+       (sab/html
+        [:div {:style {:background-color (:color data)}}
+         [:a {:href (:link data)}
+          (:title data)]])))))
 
 (defn matches-term [search-term string]
   (re-matches (re-pattern (str ".*"
@@ -42,24 +45,38 @@
 (defn extract-entries [search-terms]
   "A transducer for extracting etries from server response"
   (comp (mapcat reader/read-string)
-        (filter #(matches-terms search-terms
-                                (:title %)))))
+        ;; (map #(assoc % :visible true))
+        ))
 
 (defn init-entries [data owner]
   (let [new-entries (chan 1000
                           (extract-entries [(:search-term data)]))]
-        (om/update! data :entries [])
-        
-        (doseq [feed-url (:feeds-urls data)]
-          (POST "/feed"
+    (om/update! data :entries [])
+    (doseq [feed-url (:feeds-urls data)]
+      (POST "/feed"
                 {:format :raw
                  :params {:url feed-url}
                  :handler (fn [response]
                             (go
                               (>! new-entries response)))}))
-        (go (while true
-              (let [new-entry (<! new-entries)]
-                (om/transact! data :entries #(conj % new-entry)))))))
+    (go (while true
+          (let [new-entry (<! new-entries)]
+            (om/transact! data
+                          :entries
+                          #(conj %
+                                (assoc new-entry
+                                        :visible (matches-terms [(:search-term data)]
+                                                                (:title new-entry))))))))))
+
+(defn update-entry-visibility [entry-data search-terms]
+  (om/update! entry-data
+              :visible
+              (matches-terms search-terms
+                             (:title entry-data))))
+
+(defn update-entries-visibility [entries-data search-terms]
+  (doseq [entry-data entries-data]
+    (update-entry-visibility entry-data search-terms)))
 
 (defn entries
   [data owner]
@@ -72,20 +89,23 @@
     om/IRenderState
     (render-state [_ state]
       (apply dom/div nil
+             (sab/html
+              [:h3 "Please insert search term: "])
              (dom/input #js {:type "text"
                              :ref "search-term"
                              :value (:search-term data)
                              :onChange #(do (om/update! data
                                                         :search-term
                                                         (.. % -target -value))
-                                            (init-entries data owner))})
+                                            (update-entries-visibility (:entries data)
+                                                                       [(:search-term data)]))})
              (sab/html
               [:h3 (str "results for search term: " (:search-term data))])
-             (om/build-all entry (map (fn [data-entry color]
-                                        (assoc data-entry
-                                               :color color))
-                                      (:entries data)
-                                      (:zebra-colors data)))))))
+             (om/build-all entry (vec (map (fn [data-entry color]
+                                             (assoc data-entry
+                                                    :color color))
+                                           (:entries data)
+                                           (:zebra-colors data))))))))
 
 (defn main []
   (om/root
