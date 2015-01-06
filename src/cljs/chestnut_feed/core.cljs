@@ -45,17 +45,12 @@
         (filter #(matches-terms search-terms
                                 (:title %)))))
 
-
-(defn entries
-  [data owner]
-  (reify
-    om/IInitState
-    (init-state [_]
-      {:new-entries (chan 1000 (extract-entries [(:search-term data)]))})
-    om/IWillMount
-    (will-mount [_]
-      (let [new-entries (om/get-state owner :new-entries)]
-        (doseq [feed-url (:feeds-urls @app-state)]
+(defn init-entries [data owner]
+  (let [new-entries (chan 1000
+                          (extract-entries [(:search-term data)]))]
+        (om/update! data :entries [])
+        
+        (doseq [feed-url (:feeds-urls data)]
           (POST "/feed"
                 {:format :raw
                  :params {:url feed-url}
@@ -65,15 +60,25 @@
         (go (while true
               (let [new-entry (<! new-entries)]
                 (om/transact! data :entries #(conj % new-entry)))))))
+
+(defn entries
+  [data owner]
+  (reify
+    om/IInitState
+    (init-state [_] {})
+    om/IWillMount
+    (will-mount [_]
+      (init-entries data owner))
     om/IRenderState
     (render-state [_ state]
       (apply dom/div nil
              (dom/input #js {:type "text"
                              :ref "search-term"
                              :value (:search-term data)
-                             :onChange #(om/update! data
-                                                    :search-term
-                                                    (.. % -target -value))})
+                             :onChange #(do (om/update! data
+                                                        :search-term
+                                                        (.. % -target -value))
+                                            (init-entries data owner))})
              (sab/html
               [:h3 (str "results for search term: " (:search-term data))])
              (om/build-all entry (map (fn [data-entry color]
