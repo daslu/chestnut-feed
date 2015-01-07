@@ -96,13 +96,10 @@
                             (go
                               (>! new-entries response)))}))
     (go (while true
-          (let [[new-entry c] (alts! [(timeout 2000)
-                                      new-entries])]
-            (if (= c new-entries)
-              (om/transact! data
-                            :entries
-                            #(conj %
-                                   new-entry))))))))
+          (let [new-entry (<! new-entries)]
+            (om/transact! data
+                          :entries
+                          #(conj % new-entry)))))))
 
 
 (defn entries
