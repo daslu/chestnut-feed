@@ -28,22 +28,27 @@
   [data]
   (om/component
    (if (:visible data)
-     (sab/html
-      [:div {:style {:background-color (:color data)}}
-       [:a {:href (:link data)}
-        (str (:title data) "____")]
-       [:input {:type "button"
-                :value (if (:expanded data)
-                         "Unexpand"
-                         "Expand")
-                :on-click #(om/update! data
-                                       :expanded
-                                       (not (:expanded data)))}]
-       (if (:expanded data)
-         [:div
-          [:h4 (:description data)]
-          [:h4 (:contents data)]])
-       [:p " "]]))))
+     (dom/div nil
+              (sab/html
+               [:div {:style {:background-color (:color data)}}
+                [:a {:href (:link data)}
+                 (str (:title data) "____")]
+                [:input {:type "button"
+                         :value (if (:expanded data)
+                                  "Unexpand"
+                                  "Expand")
+                         :on-click #(om/update! data
+                                                :expanded
+                                                (not (:expanded data)))}]
+                (if (:expanded data)
+                  [:div
+                   [:h4 (om.dom/div
+                         #js {:dangerouslySetInnerHTML #js {:__html (:description data)}}
+                         nil)]
+                   [:h4 (om.dom/div
+                         #js {:dangerouslySetInnerHTML #js {:__html (:contents data)}}
+                         nil)]])
+                [:p " "]])))))
 
 (defn matches-term [search-term string]
   (re-matches (re-pattern (str ".*"
@@ -58,8 +63,9 @@
 (defn extract-entries [search-terms]
   "A transducer for extracting etries from server response"
   (comp (mapcat reader/read-string)
-        (map #(update-in % [:description] html-to-plaintext))
-        (map #(update-in % [:contents] html-to-plaintext))))
+        ;; (map #(update-in % [:description] html-to-plaintext))
+        ;; (map #(update-in % [:contents] html-to-plaintext))
+        ))
 
 (defn init-entries [data owner]
   (let [new-entries (chan 1000
