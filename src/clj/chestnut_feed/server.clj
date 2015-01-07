@@ -20,20 +20,34 @@
 (deftemplate page
   (io/resource "index.html") [] [:body] (if is-dev? inject-devmode-html identity))
 
-(defn handle-url [])
+(defn date-to-string [date]
+  (if date
+    (try (.format (java.text.SimpleDateFormat. "yyyy/MM/dd")
+                  date)
+         (catch Exception e (println ["error" date])))
+    ;;else
+    ""))
 
 (defroutes routes
   (resources "/")
   (resources "/react" {:root "react"})
   (POST "/feed" req
         (->> req
+             (#(do (Thread/sleep 10000) %))
              :params
              :url
              fp/parse-feed
              :entries
              (map #(into (select-keys % [:title :link])
-                         {:description (-> % :description :value)
-                          :contents (-> % :contents first :value)}))
+                         {:date (date-to-string (or (:updated-date %)
+                                                    (:published-date %)))
+                          :description (->> %
+                                            :description
+                                            :value)
+                          :contents (->> %
+                                         :contents
+                                         first
+                                         :value)}))
              pr-str))
   (GET "/*" req (page)))
 
