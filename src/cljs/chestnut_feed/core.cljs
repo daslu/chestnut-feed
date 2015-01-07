@@ -102,9 +102,7 @@
               (om/transact! data
                             :entries
                             #(conj %
-                                   (assoc new-entry
-                                          :visible (matches-term (:search-term data)
-                                                                  (:title new-entry)))))))))))
+                                   new-entry))))))))
 
 
 (defn entries
