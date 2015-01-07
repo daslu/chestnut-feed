@@ -4,7 +4,7 @@
             [ajax.core :refer [GET POST]]
             [cljs.reader :as reader]
             [sablono.core :as sab :include-macros true ]
-            [cljs.core.async :as async :refer [<! >! put! take! chan timeout]]
+            [cljs.core.async :as async :refer [<! >! put! take! chan timeout alts!]]
             [clojure.string :refer [lower-case]])
   (:require-macros 
    [cljs.core.async.macros :as a :refer [go go-loop]]))
@@ -73,13 +73,15 @@
                             (go
                               (>! new-entries response)))}))
     (go (while true
-          (let [new-entry (<! new-entries)]
-            (om/transact! data
-                          :entries
-                          #(conj %
-                                (assoc new-entry
-                                        :visible (matches-terms [(:search-term data)]
-                                                                (:title new-entry))))))))))
+          (let [[new-entry c] (alts! [(timeout 2000)
+                                      new-entries])]
+            (if (= c new-entries)
+              (om/transact! data
+                            :entries
+                            #(conj %
+                                   (assoc new-entry
+                                          :visible (matches-terms [(:search-term data)]
+                                                                  (:title new-entry)))))))))))
 
 (defn update-entry-visibility [entry-data search-terms]
   (om/update! entry-data
