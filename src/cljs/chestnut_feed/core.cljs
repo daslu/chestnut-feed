@@ -103,18 +103,9 @@
                             :entries
                             #(conj %
                                    (assoc new-entry
-                                          :visible (matches-terms [(:search-term data)]
+                                          :visible (matches-term (:search-term data)
                                                                   (:title new-entry)))))))))))
 
-(defn update-entry-visibility [entry-data search-terms]
-  (om/update! entry-data
-              :visible
-              (matches-terms search-terms
-                             (:title entry-data))))
-
-(defn update-entries-visibility [entries-data search-terms]
-  (doseq [entry-data entries-data]
-    (update-entry-visibility entry-data search-terms)))
 
 (defn entries
   [data owner]
