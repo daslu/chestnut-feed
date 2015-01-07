@@ -18,6 +18,12 @@
                       :entries []
                       :search-term "clojure"}))
 
+(defn html-to-plaintext [html]
+  (if html
+    (clojure.string/replace html
+                            #"\<.*\>"
+                            " ")))
+
 (defn entry
   [data]
   (om/component
@@ -52,8 +58,8 @@
 (defn extract-entries [search-terms]
   "A transducer for extracting etries from server response"
   (comp (mapcat reader/read-string)
-        ;; (map #(assoc % :visible true))
-        ))
+        (map #(update-in % [:description] html-to-plaintext))
+        (map #(update-in % [:contents] html-to-plaintext))))
 
 (defn init-entries [data owner]
   (let [new-entries (chan 1000
