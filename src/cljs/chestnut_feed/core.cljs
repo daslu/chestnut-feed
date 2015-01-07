@@ -18,6 +18,21 @@
                       :entries []
                       :search-term "clojure"}))
 
+
+(defn integer-to-color
+  [x]
+  (let [absx (.abs js/Math x)]
+    ;; (str "#"
+    ;;      (.toString (rem absx 16777216)
+    ;;                 16))
+    (str "#"
+         "c"
+         (.toString (rem absx 16) 16)
+         "c"
+         (.toString (rem (.floor js/Math (/ absx 16)) 16) 16)
+         "c"
+         (.toString (rem (.floor js/Math (/ absx 256)) 16) 16))))
+
 (defn html-to-plaintext [html]
   (if html
     (clojure.string/replace html
@@ -27,28 +42,32 @@
 (defn entry
   [data]
   (om/component
-   (if (:visible data)
-     (dom/div nil
-              (sab/html
-               [:div {:style {:background-color (:color data)}}
-                [:a {:href (:link data)}
-                 (str (:title data) "____")]
-                [:input {:type "button"
-                         :value (if (:expanded data)
-                                  "Unexpand"
-                                  "Expand")
-                         :on-click #(om/update! data
-                                                :expanded
-                                                (not (:expanded data)))}]
-                (if (:expanded data)
-                  [:div
-                   [:h4 (om.dom/div
-                         #js {:dangerouslySetInnerHTML #js {:__html (:description data)}}
-                         nil)]
-                   [:h4 (om.dom/div
-                         #js {:dangerouslySetInnerHTML #js {:__html (:contents data)}}
-                         nil)]])
-                [:p " "]])))))
+   (dom/div nil
+            (sab/html
+             [:div {:style {:background-color (:color data)}}
+              [:a {:href (:link data)}
+               (str (:date data)
+                    "____"
+                    (:title data)
+                    "____")]
+              [:input {:type "button"
+                       :value (if (:expanded data)
+                                "Unexpand"
+                                "Expand")
+                       :on-click #(om/update! data
+                                              :expanded
+                                              (not (:expanded data)))}]
+              (if (:expanded data)
+                [:div
+                 (.log js/console (:contents data))
+                 (.log js/console (:description data))
+                 [:h4 (om.dom/div
+                       #js {:dangerouslySetInnerHTML #js {:__html (:description data)}}
+                       nil)]
+                 [:h4 (om.dom/div
+                       #js {:dangerouslySetInnerHTML #js {:__html (:contents data)}}
+                       nil)]])
+              [:p " "]]))))
 
 (defn matches-term [search-term string]
   (re-matches (re-pattern (str ".*"
@@ -56,20 +75,18 @@
                                ".*"))
               (lower-case string)))
 
-(defn matches-terms [search-terms string]
-  (every? #(matches-term % string)
-          search-terms))
 
-(defn extract-entries [search-terms]
+(def prepare-entries
   "A transducer for extracting etries from server response"
   (comp (mapcat reader/read-string)
+        (map #(assoc % :color (integer-to-color (hash %))))
         ;; (map #(update-in % [:description] html-to-plaintext))
         ;; (map #(update-in % [:contents] html-to-plaintext))
         ))
 
 (defn init-entries [data owner]
   (let [new-entries (chan 1000
-                          (extract-entries [(:search-term data)]))]
+                          prepare-entries)]
     (om/update! data :entries [])
     (doseq [feed-url (:feeds-urls data)]
       (POST "/feed"
@@ -121,13 +138,15 @@
                        :onChange #(let [new-search-term (.. % -target -value)]
                                     (om/update! data
                                                 :search-term
-                                                new-search-term)
-                                    (update-entries-visibility (:entries data)
-                                                               [new-search-term]))}]
+                                                new-search-term))}]
               [:h2 (str "results for search term '"
                         (:search-term data)
                         "':")])
-             (om/build-all entry (:entries data))))))
+             (om/build-all entry (->> data
+                                      :entries
+                                      (filter #(matches-term (:search-term data)
+                                                             (:title %)))
+                                      reverse))))))
 
 (defn main []
   (om/root
