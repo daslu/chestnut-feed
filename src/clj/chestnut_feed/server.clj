@@ -33,7 +33,6 @@
   (resources "/react" {:root "react"})
   (POST "/feed" req
         (->> req
-             (#(do (Thread/sleep 10000) %))
              :params
              :url
              fp/parse-feed
